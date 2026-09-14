@@ -6,26 +6,12 @@ on:
       - master
   pull_request:
 
-# pgferry consumes pgwire through a path dependency
-# (crates/pgferry/../../../pgwire, i.e. a sibling "pgwire" checkout next to
-# this repository). Every job that invokes cargo checks out the pinned
-# release there. Bump the ref together with crates/pgferry/Cargo.toml when
-# moving to a newer pgwire.
-env:
-  PGWIRE_REPO: sunng87/pgwire
-  PGWIRE_REF: v0.41.0 # 1e62dff
-
 jobs:
   format:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/checkout@v4
-      with:
-        repository: ${{ env.PGWIRE_REPO }}
-        ref: ${{ env.PGWIRE_REF }}
-        path: ../pgwire
+    - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: rustfmt
@@ -35,12 +21,7 @@ jobs:
     name: Clippy lint
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/checkout@v4
-      with:
-        repository: ${{ env.PGWIRE_REPO }}
-        ref: ${{ env.PGWIRE_REF }}
-        path: ../pgwire
+    - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy
@@ -59,12 +40,7 @@ jobs:
         # Windows.
         os: [ubuntu-latest, macos-latest]
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/checkout@v4
-      with:
-        repository: ${{ env.PGWIRE_REPO }}
-        ref: ${{ env.PGWIRE_REF }}
-        path: ../pgwire
+    - uses: actions/checkout@v6
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ matrix.rust }}
@@ -76,12 +52,7 @@ jobs:
     timeout-minutes: 30
     needs: [test]
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/checkout@v4
-      with:
-        repository: ${{ env.PGWIRE_REPO }}
-        ref: ${{ env.PGWIRE_REF }}
-        path: ../pgwire
+    - uses: actions/checkout@v6
     # scripts/e2e.sh needs initdb/pg_ctl/psql/pgbench plus a rust toolchain;
     # the flake dev shell provides all of them (postgresql_18 + fenix).
     # (no magic-nix-cache: it is no longer available to new repositories)
@@ -93,12 +64,7 @@ jobs:
     name: MSRV
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/checkout@v4
-      with:
-        repository: ${{ env.PGWIRE_REPO }}
-        ref: ${{ env.PGWIRE_REF }}
-        path: ../pgwire
+    - uses: actions/checkout@v6
     # 1.89: the MSRV of the pinned pgwire release; also required by this
     # workspace's edition-2024 let-chains.
     - uses: dtolnay/rust-toolchain@1.89

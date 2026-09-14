@@ -7,9 +7,7 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
-# path dependency for development; switch to a crates.io version when pgwire
-# 0.41+ with client-api stabilizes
-pgwire = { path = "../../../pgwire", features = [
+pgwire = { version = "0.41", features = [
   "server-api-aws-lc-rs",
   "client-api-aws-lc-rs",
 ] }
