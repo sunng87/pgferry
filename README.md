@@ -9,17 +9,7 @@ pgwire's **server API** faces downstream clients, its **client API**
 connects upstream, and a message pump forwards typed wire-protocol messages
 between them. Behavior is **code-driven**: you implement the `Interceptor`
 trait and compose built-in helpers (`EndpointGroup`, `RwSplit`, `ShardSet`)
-as ordinary values. No plugin registries, no routing-in-config. See
-[PLAN.md](PLAN.md) for the architecture and roadmap.
-
-Status: **M6 — sharding (scatter-gather)**. The pgwire-proxy core is
-feature-complete for the planned milestones: passthrough (M0), session
-pooling (M1), the interceptor extension point (M2), transaction pooling
-(M3), operational surface (M4: TLS, admin console, metrics, graceful
-shutdown), routing & auto failover (M5), and scatter-gather sharding
-(M6: `Action::Scatter` with `MergePolicy::Concat`/`Sum`, `ShardSet`
-broadcast + key-hash routing, fail-fast legs). Remaining roadmap items
-are under "Later" in PLAN.md.
+as ordinary values. No plugin registries, no routing-in-config.
 
 ## Write a proxy (the point of the project)
 
@@ -89,8 +79,7 @@ struct MyGateway { /* built-in helpers as fields */ }
 #[async_trait::async_trait]
 impl Interceptor for MyGateway {
     type Ctx = ();
-    // on_query / on_row / on_cycle_end / upstream / on_upstream_error
-    // hooks — see PLAN.md §M2 for the phase design
+    // on_query / on_row / on_cycle_end / upstream / on_upstream_error hooks
 }
 
 let proxy = Proxy::builder()
@@ -121,7 +110,7 @@ cargo run -p pgferry --example gateway -- \
 the upstream; the upstream password comes from `--password` or
 `password_env`. Pool knobs via `--config pgferry.toml` (infra-level; see
 [pgferry.toml](pgferry.toml)) — including `mode = "transaction"` for
-transaction pooling. Downstream auth is trust (M0 scope); the upstream
+transaction pooling. Downstream auth is trust; the upstream
 connection authenticates for real (cleartext/MD5/SCRAM via pgwire's client
 API).
 
@@ -140,9 +129,9 @@ Two suites, both wired for CI:
    cargo test --workspace
    ```
 
-2. **End-to-end** (real PostgreSQL + psql + pgbench; the M0/M1 acceptance
-   test): builds pgferry, starts a throwaway `initdb` cluster on an
-   ephemeral port, and asserts passthrough, pooling (backend reuse,
+2. **End-to-end** (real PostgreSQL + psql + pgbench): builds pgferry,
+   starts a throwaway `initdb` cluster on an ephemeral port, and asserts
+   passthrough, pooling (backend reuse,
    abandoned-transaction rollback, parameter replay, pool caps), COPY both
    ways, LISTEN/NOTIFY, error recovery, protocol cancel, and pgbench in
    all three protocol modes:
