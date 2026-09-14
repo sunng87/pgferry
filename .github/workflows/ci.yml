@@ -1,0 +1,105 @@
+name: CI
+on:
+  schedule: [{cron: "30 13 * * *"}]
+  push:
+    branches:
+      - master
+  pull_request:
+
+# pgferry consumes pgwire through a path dependency
+# (crates/pgferry/../../../pgwire, i.e. a sibling "pgwire" checkout next to
+# this repository). Every job that invokes cargo checks out the pinned
+# release there. Bump the ref together with crates/pgferry/Cargo.toml when
+# moving to a newer pgwire.
+env:
+  PGWIRE_REPO: sunng87/pgwire
+  PGWIRE_REF: v0.41.0 # 1e62dff
+
+jobs:
+  format:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ env.PGWIRE_REPO }}
+        ref: ${{ env.PGWIRE_REF }}
+        path: ../pgwire
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt
+    - run: cargo fmt --all -- --check
+
+  lint:
+    name: Clippy lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ env.PGWIRE_REPO }}
+        ref: ${{ env.PGWIRE_REF }}
+        path: ../pgwire
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
+    # pgferry has a single feature set (aws-lc-rs TLS on both pgwire
+    # APIs), so there is no feature matrix to lint like upstream pgwire.
+    - run: cargo clippy --all-targets -- -D warnings
+
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust: [stable, nightly]
+        # no windows: the pgwire dependency hardcodes the aws-lc-rs
+        # feature set, which upstream pgwire's own CI also excludes on
+        # Windows.
+        os: [ubuntu-latest, macos-latest]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ env.PGWIRE_REPO }}
+        ref: ${{ env.PGWIRE_REF }}
+        path: ../pgwire
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+    - run: cargo test
+
+  e2e:
+    name: End-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [test]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ env.PGWIRE_REPO }}
+        ref: ${{ env.PGWIRE_REF }}
+        path: ../pgwire
+    # scripts/e2e.sh needs initdb/pg_ctl/psql/pgbench plus a rust toolchain;
+    # the flake dev shell provides all of them (postgresql_18 + fenix).
+    # (no magic-nix-cache: it is no longer available to new repositories)
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: nicknovitski/nix-develop@v1
+    - run: ./scripts/e2e.sh
+
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: ${{ env.PGWIRE_REPO }}
+        ref: ${{ env.PGWIRE_REF }}
+        path: ../pgwire
+    # 1.89: the MSRV of the pinned pgwire release; also required by this
+    # workspace's edition-2024 let-chains.
+    - uses: dtolnay/rust-toolchain@1.89
+    - run: cargo build

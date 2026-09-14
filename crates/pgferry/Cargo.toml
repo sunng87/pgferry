@@ -1,0 +1,27 @@
+[package]
+name = "pgferry"
+version = "0.1.0"
+description = "A programmable PostgreSQL proxy and connection pooler built on pgwire"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+# path dependency for development; switch to a crates.io version when pgwire
+# 0.41+ with client-api stabilizes
+pgwire = { path = "../../../pgwire", features = [
+  "server-api-aws-lc-rs",
+  "client-api-aws-lc-rs",
+] }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+regex = "1"
+rustls-pemfile = "2"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

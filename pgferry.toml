@@ -1,0 +1,45 @@
+# pgferry reference-binary configuration (infra-level only).
+#
+# pgferry is a code-driven framework; routing, endpoints and interceptors
+# are composed in Rust (see README / PLAN.md). This file configures only
+# the infrastructure of the reference binary.
+
+listen = "127.0.0.1:6432"
+# max_client_conn = 128          # concurrent downstream sessions
+# admin_database = "pgferry_admin"  # SHOW POOLS / SHOW CLIENTS / SHOW STATS
+# metrics_addr = "127.0.0.1:9127"   # prometheus /metrics endpoint
+# shutdown_drain_secs = 30       # graceful-shutdown drain window
+
+# [server_tls]                  # downstream TLS termination
+# cert = "server.crt"
+# key = "server.key"
+
+[pool]
+# mode = "transaction"   # transaction pooling: lease per transaction instead
+                         # of per session (see README for v1 limitations)
+# one pool per (route, user, database); all sizes/timeouts per pool
+max_size = 16          # upstream connections (idle + checked out)
+idle_timeout_secs = 600   # sweeper closes idle connections after this
+max_lifetime_secs = 3600  # connections older than this are not reused
+stale_after_secs = 30     # probe a connection on checkout after this idle time
+sweep_interval_secs = 15
+
+[route]
+# single-route demo wiring for the reference binary only
+name = "default"
+upstream = "host=127.0.0.1 port=5432"
+
+# multi-endpoint routing & failover (M5): the built-in FailoverRouter is
+# wired automatically; each endpoint gets its own pool
+# [[route.endpoints]]
+# id = "primary"
+# upstream = "host=10.0.0.1 port=5432"
+# [[route.endpoints]]
+# id = "replica"
+# upstream = "host=10.0.0.2 port=5432"
+# upstream TLS: sslmode in the connstring + verification via tls_ca, or
+# tls_insecure = true for require-style without validation
+# tls_ca = "ca.crt"
+# tls_insecure = false
+# password = "postgres"
+# password_env = "UPSTREAM_PASSWORD"
